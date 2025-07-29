@@ -10,6 +10,7 @@ resource "aws_s3_bucket" "import_s3" {
     Ambiente      = var.environment
     ManagedBy     = "Terraform"
     HasLifecycle  = var.enable_lifecycle_policies ? "true" : "false"
+    HasCORS       = var.enable_cors ? "true" : "false"
     Project       = "MultiCloud"
     Purpose       = "Storage"
   }

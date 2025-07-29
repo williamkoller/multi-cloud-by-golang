@@ -229,5 +229,49 @@ resource "google_storage_bucket" "import_bucket" {
     managed_by    = "terraform"
     created_by    = "golang-sdk"
     has_lifecycle = "true"
+    has_cors     = var.enable_cors ? "true" : "false"
+  }
+
+  # ========================================
+  # CORS Configuration para GCP
+  # ========================================
+  
+  dynamic "cors" {
+    for_each = var.enable_cors ? [1] : []
+    content {
+      # Configuração principal
+      origin          = local.final_origins
+      method          = local.cors_config.methods
+      response_header = local.gcp_exposed_headers
+      max_age_seconds = var.cors_max_age_seconds
+    }
+  }
+
+  dynamic "cors" {
+    for_each = var.enable_cors ? [1] : []
+    content {
+      # Configuração específica para uploads
+      origin          = local.final_origins
+      method          = ["POST", "PUT", "OPTIONS"]
+      response_header = concat(local.gcp_exposed_headers, [
+        "x-goog-resumable",
+        "x-goog-content-length-range"
+      ])
+      max_age_seconds = var.cors_max_age_seconds
+    }
+  }
+
+  dynamic "cors" {
+    for_each = var.enable_cors ? [1] : []
+    content {
+      # Configuração para downloads
+      origin          = local.final_origins
+      method          = ["GET", "HEAD"]
+      response_header = concat(local.gcp_exposed_headers, [
+        "Accept-Ranges",
+        "Content-Range"
+      ])
+      max_age_seconds = var.cors_max_age_seconds
+    }
   }
 } 

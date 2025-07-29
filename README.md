@@ -429,37 +429,6 @@ meu-projeto-dev-$(date +%s)
 
 ---
 
-## 🧪 Testes
-
-```bash
-# Executar testes
-go test ./...
-
-# Executar com coverage
-go test -cover ./...
-
-# Teste manual de criação
-go run main.go --aws --create --bucketname test-$(date +%s)
-```
-
----
-
-## 🤝 Contribuição
-
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -am 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
-
----
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
----
-
 ## 👨‍💻 Autor
 
 **William Koller**  
@@ -468,14 +437,3 @@ Backend Engineer | Cloud Architect | Golang | AWS | Multi-Cloud Solutions
 - GitHub: [@williamkoller](https://github.com/williamkoller)
 - LinkedIn: [William Koller](https://linkedin.com/in/williamkoller)
 
----
-
-## 🎯 Roadmap
-
-- [ ] Suporte para Azure Blob Storage
-- [ ] Implementação de testes unitários
-- [ ] CI/CD com GitHub Actions
-- [ ] Suporte para configuração de CORS
-- [ ] Integração com OpenTelemetry para observabilidade
-- [ ] Suporte para upload/download de arquivos
-- [x] **Configuração de lifecycle policies via Terraform** ✅

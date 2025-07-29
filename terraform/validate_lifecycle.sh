@@ -102,6 +102,55 @@ check_lifecycle_config() {
     fi
 }
 
+# Verificar configurações de CORS
+check_cors_config() {
+    log_info "Verificando configurações de CORS..."
+    
+    # Verificar se CORS está habilitado
+    CORS_ENABLED=$(grep "enable_cors" terraform.tfvars | awk -F'=' '{print $2}' | tr -d ' ')
+    if [[ "$CORS_ENABLED" == "true" ]]; then
+        log_success "CORS habilitado"
+    else
+        log_warning "CORS desabilitado"
+        return
+    fi
+    
+    # Verificar ambiente
+    ENVIRONMENT=$(grep "environment" terraform.tfvars | awk -F'=' '{print $2}' | tr -d ' "')
+    log_info "Ambiente detectado: ${ENVIRONMENT}"
+    
+    # Verificar origins
+    ORIGINS_LINE=$(grep "cors_allowed_origins" terraform.tfvars)
+    if echo "$ORIGINS_LINE" | grep -q '\*'; then
+        if [[ "$ENVIRONMENT" == "prod" ]]; then
+            log_error "CORS com wildcard (*) detectado em ambiente de produção!"
+            log_error "Configure origins específicas para produção"
+            exit 1
+        else
+            log_warning "CORS com wildcard (*) - adequado apenas para desenvolvimento"
+        fi
+    else
+        log_success "Origins específicas configuradas"
+    fi
+    
+    # Verificar métodos
+    METHODS_LINE=$(grep "cors_allowed_methods" terraform.tfvars)
+    if echo "$METHODS_LINE" | grep -q "DELETE"; then
+        if [[ "$ENVIRONMENT" == "prod" ]]; then
+            log_warning "Método DELETE habilitado em produção - verifique se é necessário"
+        fi
+    fi
+    
+    # Verificar credenciais
+    CREDENTIALS=$(grep "cors_allow_credentials" terraform.tfvars | awk -F'=' '{print $2}' | tr -d ' ')
+    if [[ "$CREDENTIALS" == "true" && "$ORIGINS_LINE" =~ "*" ]]; then
+        log_error "CORS com credentials=true e origins=* não é permitido!"
+        exit 1
+    fi
+    
+    log_info "Configuração CORS validada com sucesso"
+}
+
 # Verificar estimativa de economia
 show_savings_estimate() {
     log_info "Estimativa de economia com lifecycle policies:"
@@ -157,6 +206,9 @@ main() {
     check_lifecycle_config
     echo ""
     
+    check_cors_config
+    echo ""
+    
     show_savings_estimate
     echo ""
     
@@ -168,7 +220,11 @@ main() {
     log_info "Próximos passos:"
     echo "1. Revisar o plano: terraform show lifecycle.tfplan"
     echo "2. Aplicar mudanças: terraform apply lifecycle.tfplan"
-    echo "3. Verificar outputs: terraform output lifecycle_configuration"
+    echo "3. Verificar outputs:"
+    echo "   - terraform output lifecycle_configuration"
+    echo "   - terraform output cors_configuration"
+    echo "   - terraform output cors_usage_examples"
+    echo "   - terraform output cors_security_info"
 }
 
 # Verificar se está no diretório correto
