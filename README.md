@@ -157,19 +157,209 @@ terraform plan
 terraform apply
 ```
 
+---
+
+## 💰 Lifecycle Policies - Otimização de Custos
+
+### Configuração de Lifecycle Policies
+
+As lifecycle policies foram implementadas para **redução automática de custos** através de transições inteligentes entre classes de armazenamento e limpeza de dados desnecessários.
+
+#### Benefícios das Lifecycle Policies
+
+- 🎯 **Economia de até 80%** nos custos de storage
+- 🔄 **Transições automáticas** entre classes de armazenamento
+- 🧹 **Limpeza automática** de versões antigas e uploads incompletos
+- ⚡ **Configuração flexível** por ambiente (dev, staging, prod)
+
+### Configurações Padrão
+
+#### AWS S3 - Transições
+
+| Tempo    | Classe de Storage      | Economia Estimada |
+| -------- | ---------------------- | ----------------- |
+| 30 dias  | STANDARD → STANDARD_IA | ~50%              |
+| 90 dias  | STANDARD_IA → GLACIER  | ~75%              |
+| 365 dias | GLACIER → DEEP_ARCHIVE | ~80%              |
+
+#### GCP Cloud Storage - Transições
+
+| Tempo    | Classe de Storage   | Economia Estimada |
+| -------- | ------------------- | ----------------- |
+| 30 dias  | STANDARD → NEARLINE | ~50%              |
+| 90 dias  | NEARLINE → COLDLINE | ~70%              |
+| 365 dias | COLDLINE → ARCHIVE  | ~75%              |
+
+### Regras Especiais Implementadas
+
+#### 🗂️ Arquivos Temporários
+
+```
+Pasta: temp/
+Ação: Exclusão automática após 7 dias
+Objetivo: Limpeza de arquivos temporários
+```
+
+#### 📋 Logs
+
+```
+Pasta: logs/
+Transições:
+- STANDARD → IA/NEARLINE (1 dia)
+- IA/NEARLINE → GLACIER/COLDLINE (30 dias)
+- Exclusão após 90 dias
+```
+
+#### 🔄 Versões Antigas
+
+```
+Ação: Exclusão de versões não atuais após 30 dias
+Objetivo: Evitar acúmulo desnecessário de versões
+```
+
+#### 📤 Uploads Multipart
+
+```
+Ação: Limpeza de uploads incompletos após 7 dias
+Objetivo: Evitar cobrança por uploads abandonados
+```
+
+### Personalização por Ambiente
+
+#### Desenvolvimento
+
+```hcl
+# terraform.tfvars
+environment = "dev"
+lifecycle_ia_transition_days = 7
+lifecycle_glacier_transition_days = 30
+lifecycle_expiration_days = 90
+```
+
+#### Produção
+
+```hcl
+# terraform.tfvars
+environment = "prod"
+lifecycle_ia_transition_days = 30
+lifecycle_glacier_transition_days = 90
+lifecycle_deep_archive_transition_days = 365
+lifecycle_expiration_days = 0  # Nunca expira
+```
+
+### Configuração e Deploy
+
+#### 1. Configurar variáveis
+
+```bash
+# Copiar arquivo de exemplo
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+
+# Editar configurações
+nano terraform/terraform.tfvars
+```
+
+#### 2. Aplicar lifecycle policies
+
+```bash
+cd terraform
+
+# Revisar mudanças
+terraform plan
+
+# Aplicar configurações
+terraform apply
+
+# Verificar outputs
+terraform output lifecycle_configuration
+terraform output estimated_savings_info
+```
+
+#### 3. Monitorar economia
+
+```bash
+# Ver configuração atual
+terraform output lifecycle_configuration
+
+# Ver estimativa de economia
+terraform output estimated_savings_info
+```
+
+### Variáveis de Configuração
+
+| Variável                                       | Padrão | Descrição                                |
+| ---------------------------------------------- | ------ | ---------------------------------------- |
+| `enable_lifecycle_policies`                    | `true` | Habilita/desabilita todas as policies    |
+| `lifecycle_ia_transition_days`                 | `30`   | Dias para transição IA/Nearline          |
+| `lifecycle_glacier_transition_days`            | `90`   | Dias para transição Glacier/Coldline     |
+| `lifecycle_deep_archive_transition_days`       | `365`  | Dias para transição Deep Archive/Archive |
+| `lifecycle_expiration_days`                    | `0`    | Dias para expiração (0 = desabilitado)   |
+| `lifecycle_noncurrent_version_expiration_days` | `30`   | Expiração de versões antigas             |
+| `lifecycle_multipart_upload_days`              | `7`    | Limpeza de uploads incompletos           |
+
+### Monitoramento e Alertas
+
+#### CloudWatch (AWS)
+
+```bash
+# Métricas importantes
+- BucketSizeBytes
+- NumberOfObjects
+- StorageClassAnalysis
+```
+
+#### Cloud Monitoring (GCP)
+
+```bash
+# Métricas importantes
+- storage.googleapis.com/storage/object_count
+- storage.googleapis.com/storage/total_bytes
+```
+
+### 🔧 Script de Validação
+
+Um script automatizado está disponível para validar todas as configurações:
+
+```bash
+# Executar validação completa
+cd terraform
+./validate_lifecycle.sh
+```
+
+#### O que o script verifica:
+
+- ✅ Instalação do Terraform
+- ✅ Existência do arquivo terraform.tfvars
+- ✅ Sintaxe dos arquivos Terraform
+- ✅ Configurações de lifecycle policies
+- ✅ Ordem correta das transições
+- ✅ Geração do plano de execução
+- 📊 Estimativa de economia de custos
+
 ### Recursos Terraform Incluídos
 
 #### AWS (`terraform/aws_import.tf`)
 
 - Bucket S3 com tags personalizadas
 - Versionamento habilitado
+- Criptografia server-side (AES256)
+- Bloqueio de acesso público
 - Região configurável
 
 #### GCP (`terraform/gcp_import.tf`)
 
 - Bucket Cloud Storage
+- Versionamento habilitado
+- Labels organizacionais
 - Localização configurável
 - Integração com variáveis
+
+#### Lifecycle Policies (`terraform/lifecycle_policies.tf`)
+
+- **Transições automáticas de storage classes** para redução de custos
+- **Limpeza de versões antigas** e uploads multipart incompletos
+- **Regras específicas** para arquivos temporários e logs
+- **Configuração flexível** via variáveis de ambiente
 
 ---
 
@@ -288,4 +478,4 @@ Backend Engineer | Cloud Architect | Golang | AWS | Multi-Cloud Solutions
 - [ ] Suporte para configuração de CORS
 - [ ] Integração com OpenTelemetry para observabilidade
 - [ ] Suporte para upload/download de arquivos
-- [ ] Configuração de lifecycle policies via Terraform
+- [x] **Configuração de lifecycle policies via Terraform** ✅

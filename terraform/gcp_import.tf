@@ -3,7 +3,6 @@ provider "google" {
   credentials = file(var.credentials_file)
 }
 
-resource "google_storage_bucket" "import_bucket" {
-  name = "bucket-golang-sdk"
-  location = "US"
-}
+# Nota: O bucket google_storage_bucket.import_bucket 
+# agora está definido em lifecycle_policies.tf com 
+# configurações completas de lifecycle
